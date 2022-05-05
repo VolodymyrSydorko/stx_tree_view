@@ -20,6 +20,7 @@ class TreeView extends StatefulWidget {
     this.theme = const TreeViewTheme(),
     this.shrinkWrap = false,
     this.padding,
+    this.contentsWhenEmpty,
     this.scrollController,
   }) : super(key: key);
 
@@ -81,6 +82,8 @@ class TreeView extends StatefulWidget {
   /// ```
   final NodeBuilder nodeBuilder;
 
+  final Widget? contentsWhenEmpty;
+
   /// The [ScrollController] passed to [ListView.controller].
   final ScrollController? scrollController;
 
@@ -141,19 +144,22 @@ class _TreeViewState extends State<TreeView> {
     return _TreeViewScope(
       controller: controller,
       theme: widget.theme,
-      child: ListView.custom(
-        controller: widget.scrollController,
-        padding: widget.padding,
-        shrinkWrap: widget.shrinkWrap,
-        childrenDelegate: SliverChildBuilderDelegate(
-          _nodeBuilder,
-          childCount: controller.visibleNodes.length,
-          findChildIndexCallback: (Key key) {
-            final index = controller.indexOf((key as ValueKey<TreeNode>).value);
-            return index < 0 ? null : index;
-          },
-        ),
-      ),
+      child: controller.rootNode.hasChildren || widget.contentsWhenEmpty == null
+          ? ListView.custom(
+              controller: widget.scrollController,
+              padding: widget.padding,
+              shrinkWrap: widget.shrinkWrap,
+              childrenDelegate: SliverChildBuilderDelegate(
+                _nodeBuilder,
+                childCount: controller.visibleNodes.length,
+                findChildIndexCallback: (Key key) {
+                  final index =
+                      controller.indexOf((key as ValueKey<TreeNode>).value);
+                  return index < 0 ? null : index;
+                },
+              ),
+            )
+          : widget.contentsWhenEmpty!,
     );
   }
 

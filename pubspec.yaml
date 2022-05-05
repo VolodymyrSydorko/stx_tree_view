@@ -1,6 +1,6 @@
 name: stx_tree_view
 description: A Flutter package for a fully customisable base tree view. Using this package you can build nested tree view with the possibility of making each child widget a parent.
-version: 0.0.1
+version: 0.0.2
 
 homepage: https://github.com/VolodymyrSydorko/stx_tree_view
 repository: https://github.com/VolodymyrSydorko/stx_tree_view
