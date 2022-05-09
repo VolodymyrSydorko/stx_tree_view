@@ -4,11 +4,6 @@ import 'package:flutter/foundation.dart';
 
 import 'tree_node.dart';
 
-// TODO: |
-//* Perhaps it'd be easy to setup an "indexOfNodeMap" to store node's index
-//* to avoid having to call _visibleNodes.indexOf(TreeNode) as we are using
-//* indices (indexOf(parent) + 1) to add nodes to visibleNodes.
-
 /// A simple Controller for managing the nodes that compose [TreeView].
 ///
 /// This class was extracted from [TreeView] for use cases where you
@@ -81,14 +76,14 @@ class TreeViewController extends TreeViewControllerBase with ChangeNotifier {
 
   /// Starting from [rootNode], searches the subtree looking for a node id that
   /// match [id], returns `null` if no node was found with the given [id].
-  TreeNode? find(String id) {
+  TreeNode? find(String id, [bool onlyShown = true]) {
     final cachedNode = _searchedNodesCache[id];
 
     if (cachedNode != null) {
       return cachedNode;
     }
 
-    final searchedNode = rootNode.find(id);
+    final searchedNode = rootNode.find(id, onlyShown);
 
     if (searchedNode != null) {
       _searchedNodesCache[searchedNode.id] = searchedNode;
@@ -180,7 +175,7 @@ class TreeViewController extends TreeViewControllerBase with ChangeNotifier {
   @override
   void refreshNode(TreeNode node, {bool keepExpandedNodes = false}) {
     if (node.hasChildren) {
-      node.descendants
+      node.renderDescendants
           .where((descendant) => isVisible(descendant.id))
           .forEach((child) => _nodesThatShouldRefresh[child.id] = true);
     }
@@ -232,18 +227,18 @@ class TreeViewControllerBase {
 
   late final _visibleNodesMap = <String, bool>{};
 
-  /// The [TreeNode] that will store all top level nodes.
-  ///
-  /// This node doesn't get displayed in the [TreeView],
-  /// it is only used to index/find nodes easily.
-  final TreeNode rootNode;
-
   final _visibleNodes = <TreeNode>[];
 
   /// The list of [TreeNode]'s that are currently visible in the [TreeView].
   UnmodifiableListView<TreeNode> get visibleNodes {
     return UnmodifiableListView(_visibleNodes);
   }
+
+  /// The [TreeNode] that will store all top level nodes.
+  ///
+  /// This node doesn't get displayed in the [TreeView],
+  /// it is only used to index/find nodes easily.
+  final TreeNode rootNode;
 
   // * ~~~~~~~~~~ HELPER METHODS ~~~~~~~~~~ *
 
@@ -304,7 +299,7 @@ class TreeViewControllerBase {
 
     _expandedNodes.remove(node.id);
 
-    for (var descendant in node.descendants) {
+    for (var descendant in node.renderDescendants) {
       _expandedNodes.remove(descendant.id);
 
       if (descendant.isRemovable) {
@@ -351,7 +346,7 @@ class TreeViewControllerBase {
     List<TreeNode>? previouslyExpandedNodes;
 
     if (keepExpandedNodes) {
-      previouslyExpandedNodes = node.descendants
+      previouslyExpandedNodes = node.renderDescendants
           .where((descendant) => isExpanded(descendant.id))
           .toList(growable: false);
     }
@@ -372,7 +367,7 @@ class TreeViewControllerBase {
     List<TreeNode>? previouslyExpandedNodes;
 
     if (keepExpandedNodes) {
-      previouslyExpandedNodes = rootNode.descendants
+      previouslyExpandedNodes = rootNode.renderDescendants
           .where((descendant) => isExpanded(descendant.id))
           .toList(growable: false);
     }

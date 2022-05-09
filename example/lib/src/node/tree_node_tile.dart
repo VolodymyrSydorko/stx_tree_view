@@ -30,7 +30,7 @@ class _TreeNodeTileState extends State<TreeNodeTile> {
           children: const [
             LinesWidget(),
             NodeWidgetLeadingIcon(
-              useFoldersOnly: false,
+              showExpandIconIfEmpty: true,
               expandIcon: Icon(
                 FontAwesomeIcons.chevronRight,
                 size: 12,

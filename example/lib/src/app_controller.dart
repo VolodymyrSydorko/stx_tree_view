@@ -53,11 +53,11 @@ class AppController with ChangeNotifier {
 
   void selectAll([bool select = true]) {
     if (select) {
-      for (var descendant in rootNode.descendants) {
+      for (var descendant in rootNode.renderDescendants) {
         _selectedNodes[descendant.id] = true;
       }
     } else {
-      for (var descendant in rootNode.descendants) {
+      for (var descendant in rootNode.renderDescendants) {
         _selectedNodes.remove(descendant.id);
       }
     }

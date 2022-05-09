@@ -39,7 +39,7 @@ class NodeWidgetLeadingIcon extends StatelessWidget {
     this.collapseIcon,
     this.leafIcon = const Icon(Icons.article_rounded),
     this.padding = const EdgeInsets.all(0.0),
-    this.useFoldersOnly = false,
+    this.showExpandIconIfEmpty = false,
     this.leafIconDisabledColor,
     this.splashRadius,
     this.onPressed,
@@ -75,9 +75,9 @@ class NodeWidgetLeadingIcon extends StatelessWidget {
   /// to input gestures.
   final EdgeInsetsGeometry padding;
 
-  /// If set to `true`, [leafIcon] will be ignored and every
-  /// [TreeNodeScope.node] will be expandable, even nodes without children.
-  final bool useFoldersOnly;
+  /// If set to `true`, every [TreeNodeScope.node] which is not leaf will be expandable,
+  /// even nodes without children.
+  final bool showExpandIconIfEmpty;
 
   /// The color used by [leafIcon] when it's [IconButton] is disabled
   /// (i.e. [onPressed] is `null`).
@@ -92,7 +92,7 @@ class NodeWidgetLeadingIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     final treeNodeScope = TreeNodeScope.of(context);
 
-    if (!useFoldersOnly && treeNodeScope.node.isLeaf) {
+    if (treeNodeScope.node.isLeaf) {
       final leafIconSize = leafIcon.size ?? 24.0;
 
       return SizedBox(
@@ -117,27 +117,30 @@ class NodeWidgetLeadingIcon extends StatelessWidget {
     return SizedBox(
       height: iconSize + padding.vertical,
       width: iconSize + padding.horizontal,
-      child: IconButton(
-        splashRadius: splashRadius,
-        alignment: Alignment.center,
-        padding: padding,
-        onPressed: () {
-          treeNodeScope.toggleExpanded(context);
-          onPressed?.call();
-        },
-        icon: AnimatedSwitcher(
-          duration: kThemeAnimationDuration,
-          switchInCurve: Curves.fastOutSlowIn,
-          switchOutCurve: Curves.fastOutSlowIn,
-          transitionBuilder: (child, animation) {
-            return ScaleTransition(
-              scale: animation,
-              child: child,
-            );
+      child: Visibility(
+        visible: treeNodeScope.node.hasChildren || showExpandIconIfEmpty,
+        child: IconButton(
+          splashRadius: splashRadius,
+          alignment: Alignment.center,
+          padding: padding,
+          onPressed: () {
+            treeNodeScope.toggleExpanded(context);
+            onPressed?.call();
           },
-          child: treeNodeScope.isExpanded
-              ? collapseIcon ?? kCollapseIcon
-              : expandIcon ?? kExpandIcon,
+          icon: AnimatedSwitcher(
+            duration: kThemeAnimationDuration,
+            switchInCurve: Curves.fastOutSlowIn,
+            switchOutCurve: Curves.fastOutSlowIn,
+            transitionBuilder: (child, animation) {
+              return ScaleTransition(
+                scale: animation,
+                child: child,
+              );
+            },
+            child: treeNodeScope.isExpanded
+                ? collapseIcon ?? kCollapseIcon
+                : expandIcon ?? kExpandIcon,
+          ),
         ),
       ),
     );

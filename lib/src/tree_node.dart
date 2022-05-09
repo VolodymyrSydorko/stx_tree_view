@@ -1,6 +1,6 @@
 import 'dart:collection' show UnmodifiableSetView;
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import 'lines_painter.dart' show TreeLine;
 
@@ -30,6 +30,7 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
     required this.id,
     this.label = '',
     this.data,
+    this.isLeaf = false,
     bool isSelected = false,
   }) : _isSelected = isSelected;
 
@@ -44,6 +45,8 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
   /// Any data you may want to store or pass around.
   final dynamic data;
 
+  final bool isLeaf;
+
   bool _isSelected;
 
   bool get isSelected => _isSelected;
@@ -56,29 +59,27 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
   /// The list of child nodes.
   UnmodifiableSetView<TreeNode> get renderChildren =>
       UnmodifiableSetView(_renderChildren);
-  UnmodifiableSetView<TreeNode> get children =>
-      UnmodifiableSetView(_children);
+  UnmodifiableSetView<TreeNode> get children => UnmodifiableSetView(_children);
+
+  bool get isLeafOrEmpty => isLeaf || _renderChildren.isEmpty;
 
   /// Whether this node has children or not.
   bool get hasChildren => _renderChildren.isNotEmpty;
 
-  bool get isAnyChildrenSelected => isLeaf
+  bool get isAnyChildrenSelected => isLeafOrEmpty
       ? _isSelected
       : _renderChildren.any((element) => element.isAnyChildrenSelected);
 
-  bool get isAllChildrenSelected => isLeaf
+  bool get isAllChildrenSelected => isLeafOrEmpty
       ? _isSelected
       : !_renderChildren.any((element) => !element.isAllChildrenSelected);
 
-  /// Convenience operator to get the [index]th child.
-  TreeNode operator [](int index) => _renderChildren.elementAt(index);
-
   /// Returns an [Iterable] of every [TreeNode] under this.
   Iterable<TreeNode> get descendants sync* {
-    for (final child in _renderChildren) {
+    for (final child in _children) {
       yield child;
 
-      if (child.hasChildren) {
+      if (child.children.isNotEmpty) {
         yield* child.descendants;
       }
     }
@@ -87,10 +88,35 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
   /// Same as [descendants] but with nullable return, useful when
   /// filtering nodes to use `orElse: () => null` when no node was found.
   Iterable<TreeNode?> get nullableDescendants sync* {
+    for (final child in _children) {
+      yield child;
+      if (child.children.isNotEmpty) {
+        yield* child.nullableDescendants;
+      }
+    }
+  }
+
+  /// Convenience operator to get the [index]th child.
+  TreeNode operator [](int index) => _renderChildren.elementAt(index);
+
+  /// Returns an [Iterable] of every [TreeNode] under this.
+  Iterable<TreeNode> get renderDescendants sync* {
+    for (final child in _renderChildren) {
+      yield child;
+
+      if (child.hasChildren) {
+        yield* child.renderDescendants;
+      }
+    }
+  }
+
+  /// Same as [descendants] but with nullable return, useful when
+  /// filtering nodes to use `orElse: () => null` when no node was found.
+  Iterable<TreeNode?> get nullableRenderDescendants sync* {
     for (final child in _renderChildren) {
       yield child;
       if (child.hasChildren) {
-        yield* child.nullableDescendants;
+        yield* child.nullableRenderDescendants;
       }
     }
   }
@@ -105,6 +131,8 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
     for (var child in _renderChildren) {
       child.select();
     }
+
+    notifyListeners();
   }
 
   void deselect() {
@@ -113,6 +141,8 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
     for (var child in _renderChildren) {
       child.deselect();
     }
+
+    notifyListeners();
   }
 
   /// Adds a single child to this node and sets its [parent] property to `this`.
@@ -134,6 +164,10 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
   /// Adds a list of children to this node.
   void addChildren(Iterable<TreeNode> nodes) {
     nodes.forEach(addChild);
+  }
+
+  void addRenderChildren(Iterable<TreeNode> nodes) {
+    nodes.forEach(_renderChildren.add);
   }
 
   /// Removes a single child from this node and set its parent to `null`.
@@ -183,19 +217,20 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
     _parent!.removeChild(this);
   }
 
+  void clearRenderChildren() {
+    _renderChildren.clear();
+  }
+
   /// Removes all children from this node and sets their parent to null.
   ///
   /// Returns the old children to easily move nodes to another parent.
-  List<TreeNode> clearChildren([bool isForce = true]) {
+  List<TreeNode> clearChildren() {
     final _removedChildren = _renderChildren.map((child) {
       child._parent = null;
       return child;
     }).toList(growable: false);
 
-    if (isForce) {
-      _children.clear();
-    }
-
+    _children.clear();
     _renderChildren.clear();
     return _removedChildren;
   }
@@ -224,9 +259,6 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
   /// The distance between this node and the root node.
   int get depth => isRoot ? -1 : parent!.depth + 1;
 
-  /// Whether this node is the last one in the subtree (empty children).
-  bool get isLeaf => _renderChildren.isEmpty;
-
   /// Whether or not this node is the root.
   bool get isRoot => parent == null;
 
@@ -241,7 +273,8 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
   /// Starting from this node, searches the subtree
   /// looking for a node id that match [id],
   /// returns `null` if no node was found with the given [id].
-  TreeNode? find(String id) => nullableDescendants.firstWhere(
+  TreeNode? find(String id, [bool onlyShown = true]) =>
+      (onlyShown ? nullableRenderDescendants : nullableDescendants).firstWhere(
         (descendant) => descendant == null ? false : descendant.id == id,
         orElse: () => null,
       );
