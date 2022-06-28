@@ -31,6 +31,7 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
     this.label = '',
     this.data,
     this.isLeaf = false,
+    this.disabled = false,
     bool isSelected = false,
   }) : _isSelected = isSelected;
 
@@ -46,6 +47,8 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
   final dynamic data;
 
   final bool isLeaf;
+
+  final bool disabled;
 
   bool _isSelected;
 
@@ -126,6 +129,8 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
       _renderChildren.isEmpty ? null : _renderChildren.last;
 
   void select() {
+    if (disabled) return;
+
     _isSelected = true;
 
     for (var child in _renderChildren) {
@@ -136,6 +141,8 @@ class TreeNode extends Comparable<TreeNode> with ChangeNotifier {
   }
 
   void deselect() {
+    if (disabled) return;
+
     _isSelected = false;
 
     for (var child in _renderChildren) {
